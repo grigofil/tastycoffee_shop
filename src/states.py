@@ -52,3 +52,6 @@ class Order(StatesGroup):
     comment = State()
     captcha = State()
     confirmation = State()
+
+class ThresholdSettings(StatesGroup):
+    threshold_value = State()

@@ -4,6 +4,7 @@ from typing import Any
 
 import constants
 import datetime
+import asyncio
 
 class Order:
     def __init__(self, id: int) -> None:
@@ -132,7 +133,20 @@ class Order:
     async def date_created(self) -> datetime.datetime:
         return datetime.datetime.strptime(await self.date_created_raw, constants.TIME_FORMAT)
 
-
+    @property
+    async def total_value(self) -> float:
+        """Calculate the total value of the order including delivery"""
+        items_json = await self.__items_json
+        total = 0
+        for item in items_json:
+            if isinstance(item, dict) and 'price' in item and 'amount' in item:
+                total += item['price'] * item['amount']
+        
+        # Add delivery cost if applicable
+        if await self.delivery_id == 1:
+            total += await self.delivery_price
+        
+        return total
 
 async def get_orders_by_status(status: int) -> list[Order]:
     return [Order(order_id) for order_id in (await database.fetch("SELECT id FROM orders WHERE status = ?", status))]
@@ -148,5 +162,51 @@ async def create(
 ) -> Order:
     await database.fetch("INSERT INTO orders (user_id, items, adress, phone_number, email, comment, date_created) VALUES (?, ?, ?, ?, ?, ?)", user_id, items_json, adress, phone_number, email, comment, date_created)
     return Order((await database.fetch("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0][0])
+
+async def get_total_orders_value() -> float:
+    """Calculate the total value of all orders"""
+    total = 0
+    orders = await database.fetch("SELECT items FROM orders")
+    
+    for order_items in orders:
+        try:
+            items_json = json.loads(order_items[0])
+            for item in items_json:
+                if isinstance(item, dict) and 'price' in item and 'amount' in item:
+                    total += item['price'] * item['amount']
+        except (json.JSONDecodeError, KeyError):
+            continue
+    
+    return total
+
+async def notify_admins_if_threshold_exceeded(new_order_value: float) -> None:
+    """Notify admins if the total order value exceeds the threshold"""
+    if not constants.config["notifications"]["order_threshold_enabled"]:
+        return
+        
+    threshold = constants.config["notifications"]["order_threshold"]
+    total_value = await get_total_orders_value()
+    
+    if total_value > threshold:
+        # Get all admin users
+        admin_users = await database.fetch("SELECT id FROM users WHERE is_admin = 1")
+        
+        notification_text = (
+            f"🔔 *Уведомление о заказах*\n\n"
+            f"Общая сумма заказов превысила пороговое значение!\n"
+            f"Текущая сумма: {total_value:.2f} {constants.config['settings']['currency_symbol']}\n"
+            f"Пороговое значение: {threshold:.2f} {constants.config['settings']['currency_symbol']}"
+        )
+        
+        # Send notification to all admins
+        for admin_id in admin_users:
+            try:
+                await constants.bot.send_message(
+                    chat_id=admin_id[0],
+                    text=notification_text,
+                    parse_mode="Markdown"
+                )
+            except:
+                continue
 
 

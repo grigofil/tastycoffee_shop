@@ -61,6 +61,10 @@ class Config:
                     "email": True,
                     "captcha": True,
                 },
+                "notifications": {
+                    "order_threshold": 100000,  # Default threshold of 100,000
+                    "order_threshold_enabled": True,  # Enable/disable threshold notifications
+                },
                 "payment_methods": {
                     "cash": {
                         "title": "Наличными",
@@ -74,7 +78,7 @@ class Config:
                         "title": "Оплата через Telegram",
                         "enabled": False,
                     },
-                  },
+                },
                 "info": {
                     "greeting": "Приветствуем в нашем магазине!",
                     "contacts": "Телефон: +7 (999) 999-99-99\nАдрес: г. Москва, ул. Ленина, д. 1",

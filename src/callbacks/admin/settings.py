@@ -12,6 +12,7 @@ async def execute(callback_query: types.CallbackQuery, user: models.users.User, 
             (constants.language.checkout_settings, f"{constants.JSON_ADMIN}checkout_settings"),
             (constants.language.system_settings, f"{constants.JSON_ADMIN}system_settings"),
             (constants.language.stats_settings, f"{constants.JSON_ADMIN}stats_settings"),
+            ("🔔 Настройки уведомлений", f"{constants.JSON_ADMIN}notification_settings"),
             (constants.language.back, f"{constants.JSON_ADMIN}adminPanel"),
         ])
     )
