@@ -49,7 +49,22 @@ no_categories = "Создайте хотя бы одну категорию пе
 user_management = "🧍 Управление пользователями"
 category_management = "📁 Категории"
 stats = "📈 Статистика"
+update_database = "🔄 Обновить базу данных"
 settings = "⚙ Настройки"
+
+# Order summary
+order_summary = "📊 Сводный отчет"
+full_order_summary = "📋 Полный список товаров"
+total_active_items = "Всего активных позиций"
+total_item_count = "Общее количество товаров"
+total_cost = "Общая стоимость"
+popular_items = "Самые популярные товары в текущих заказах"
+previous_page = "⬅️ Предыдущая"
+next_page = "Следующая ➡️"
+page = "Страница"
+no_active_orders = "В настоящее время нет активных заказов"
+items_distribution = "Распределение товаров в текущих заказах"
+items_count = "Количество"
 
 # Main settings
 language = "🌐 Язык"
@@ -169,12 +184,20 @@ add_admin_role = "🔴 Сделать администратором"
 def change_order_status(status): return f"Изменить статус на \"{status}\""
 
 # Shop stats
-registration_stats = "👥Статистика регистраций"
-order_stats = "📦Статистика заказов"
+registration_stats = "👥 Статистика регистраций"
+order_stats = "📦 Статистика заказов"
 all_time = "За всё время"
 monthly = "За последние 30 дней"
 weekly = "За последние 7 дней"
 daily = "За последние 24 часа"
+total_users = "Всего пользователей"
+total_orders = "Всего заказов"
+total_revenue = "Общая выручка"
+role_regular_user = "Пользователи"
+role_manager = "Менеджеры"
+role_admin = "Администраторы"
+user_roles_distribution = "Распределение ролей пользователей"
+order_status_distribution = "Распределение заказов по статусам"
 
 # Payment settings
 yoomoney = "🟢 ЮMoney"
@@ -225,7 +248,7 @@ enable_debug = "❌ Режим отладки"
 
 input_email = f"Введите email {or_press_back}"
 input_phone = f"Введите номер телефона {or_press_back}"
-input_address = f"Введите адрес {or_press_back}"
+input_adress = f"Введите адрес {or_press_back}"
 input_captcha = f"Введите CAPTCHA {or_press_back}"
 input_captcha_error = "Неверный CAPTCHA"
 input_email_error = "Неверный email"
@@ -237,5 +260,32 @@ disable_debug = "✅ Режим отладки"
 
 # Manager tab
 view_order = "📂 Посмотреть заказ"
+
+previous_page = "⬅️ Предыдущая страница"
+next_page = "Следующая страница ➡️"
+
+# Order confirmation
+place_order = "✅ Оформить заказ"
+def order_placed_successfully(order_id):
+    return f"✅ Заказ #{order_id} успешно оформлен! Спасибо за покупку."
+back_to_catalog = "🔙 Вернуться в каталог"
+
+def confirm_order(email=None, phone_number=None, adress=None, comment=None, username=None):
+    text = "📋 Подтверждение заказа\n\n"
+    if username:
+        text += f"Имя пользователя: @{username}\n"
+    if email:
+        text += f"Email: {email}\n"
+    if phone_number:
+        text += f"Телефон: {phone_number}\n"
+    if adress:
+        text += f"Адрес: {adress}\n"
+    if comment:
+        text += f"Комментарий: {comment}\n"
+    
+    text += "\nПожалуйста, проверьте данные и нажмите 'Оформить заказ'."
+    return text
+
+input_comment = f"Введите комментарий к заказу {or_press_skip}:"
 
 

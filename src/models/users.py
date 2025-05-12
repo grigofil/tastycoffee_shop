@@ -35,7 +35,20 @@ class User:
         return False
     
     async def _query(self, field: str) -> Any:
-        return (await database.fetch(f"SELECT {field} FROM users WHERE id = ?", self.id))[0][0]
+        result = await database.fetch(f"SELECT {field} FROM users WHERE id = ?", self.id)
+        if not result or len(result) == 0:
+            # If this user doesn't exist, create it first then retry
+            await create_if_not_exist(self.id, "unknown")
+            result = await database.fetch(f"SELECT {field} FROM users WHERE id = ?", self.id)
+            if not result or len(result) == 0:
+                raise ValueError(f"User {self.id} not found in database even after creation attempt")
+        return result[0][0]
+
+    async def _query_all(self, field: str) -> Any:
+        result = await database.fetch(f"SELECT {field} FROM users")
+        if not result or len(result) == 0:
+            return None
+        return result[0][0]
 
     async def _update(self, field: str, value: Any) -> None:
         await database.fetch(f"UPDATE users SET {field} = ? WHERE id = ?", value, self.id)
@@ -79,14 +92,25 @@ class User:
             self.__user = user
 
         async def _get_data(self) -> dict:
-            return json.loads(await self.__user._query("cart"))
+            try:
+                cart_data = await self.__user._query("cart")
+                return json.loads(cart_data)
+            except (TypeError, json.JSONDecodeError):
+                # Create a new empty cart if there's an issue
+                empty_cart = json.dumps({
+                    "items": {},
+                    "delivery": 0,
+                    "payment": 0
+                })
+                await self.__user._update("cart", empty_cart)
+                return json.loads(empty_cart)
         
         async def _set_data(self, data: dict) -> None:
             await self.__user._update("cart", json.dumps(data))
 
         @property
         def items(self) -> "__Items":
-            return (self.__Items(self))
+            return self.__Items(self)
 
         class __Items:
             def __init__(self, cart: "__Cart") -> None:
@@ -125,12 +149,17 @@ class User:
                 await self.__cart._set_data(data)
 
             @property
-            async def total_price(self) -> float:
+            async def __Items_total_price(self) -> float:
                 total = 0
                 for item_id, amount in (await self.dict).items():
-                    total += (await items.Item(item_id).price) * amount
-
+                    item = items.Item(int(item_id))
+                    price = await item.discounted_price
+                    total += amount * price
                 return total
+                
+            @property
+            async def total_price(self) -> float:
+                return await self.__Items_total_price
 
         # 0 is self_checkout
         # 1 is delivery
@@ -156,13 +185,24 @@ class User:
 
 
 async def get_users() -> list[User]:
-    return [User(*user_id) for user_id in await database.fetch("SELECT id FROM users")]
+    result = await database.fetch("SELECT id FROM users")
+    return [User(user_id[0]) for user_id in result] if result else []
 
 async def does_exist(user_id: int) -> bool:
-    return bool(await database.fetch("SELECT id FROM users WHERE id = ?", user_id))
+    # Execute query with user_id as a parameter
+    result = await database.fetch("SELECT id FROM users WHERE id = ?", user_id)
+    return bool(result)
 
 async def create(user_id: int, username: str) -> None:
-    await database.fetch("""INSERT INTO users (
+    cart_data = json.dumps({
+        "items": {},
+        "delivery": 0,
+        "payment": 0
+    })
+    timestamp = datetime.datetime.now().strftime(constants.TIME_FORMAT)
+    
+    await database.fetch(
+        """INSERT INTO users (
         id,
         username,
         is_admin,
@@ -171,14 +211,7 @@ async def create(user_id: int, username: str) -> None:
         date_created,
         cart
         ) VALUES (?, ?, 0, 0, 1, ?, ?)""",
-        user_id,
-        username,
-        datetime.datetime.now().strftime(constants.TIME_FORMAT),
-        json.dumps({
-            "items": {},
-            "delivery": 0,
-            "payment": 0
-        })
+        (user_id, username, timestamp, cart_data)
     )
 
 async def create_if_not_exist(user_id: int, username: str) -> None:

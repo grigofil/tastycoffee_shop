@@ -11,6 +11,7 @@ async def execute(callback_query: types.CallbackQuery, user: models.users.User, 
         (constants.language.item_management, f"{constants.JSON_ADMIN}items"),
         (constants.language.user_management, f"{constants.JSON_ADMIN}users"),
         (constants.language.stats, f"{constants.JSON_ADMIN}stats"),
+        (constants.language.update_database, f"{constants.JSON_ADMIN}update_database"),
         (constants.language.settings, f"{constants.JSON_ADMIN}settings"),
     ])
 

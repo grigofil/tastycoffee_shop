@@ -20,6 +20,7 @@ class Order:
         return """CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY,
             user_id INTEGER NOT NULL,
+            username TEXT,
             items TEXT NOT NULL,
             adress TEXT,
             phone_number TEXT,
@@ -62,17 +63,21 @@ class Order:
         return [self.__Item(item) for item in await self.__items_json]
 
     class __Item:
-        def __init__(self, item_raw: str) -> None:
+        def __init__(self, item_raw: dict) -> None:
             self.__item_raw = item_raw
         
         def __repr__(self) -> str:
-            return self.__item_raw
+            return str(self.__item_raw)
 
         def __str__(self) -> str:
-            return self.__item_raw
+            return str(self.__item_raw)
 
         @property
         def dict(self) -> dict:
+            # Если __item_raw уже словарь, просто вернуть его
+            if isinstance(self.__item_raw, dict):
+                return self.__item_raw
+            # Иначе попробовать разобрать как JSON
             return json.loads(self.__item_raw)
 
         @property
@@ -130,9 +135,24 @@ class Order:
         return await self.__query("date_created")
     @property
     async def date_created(self) -> datetime.datetime:
-        return datetime.datetime.strptime(await self.date_created_raw, constants.TIME_FORMAT)
+        date_str = await self.date_created_raw
+        try:
+            # Try parsing with the standard format first
+            return datetime.datetime.strptime(date_str, constants.TIME_FORMAT)
+        except ValueError:
+            # If that fails, try parsing with microseconds
+            try:
+                # Split the string to handle microseconds separately
+                main_part = date_str.split('.')[0]
+                return datetime.datetime.strptime(main_part, constants.TIME_FORMAT)
+            except Exception as e:
+                # If all parsing fails, return current time and log error
+                print(f"Error parsing date: {date_str} - {str(e)}")
+                return datetime.datetime.now()
 
-
+    @property
+    async def username(self) -> str | None:
+        return await self.__query("username")
 
 async def get_orders_by_status(status: int) -> list[Order]:
     return [Order(order_id) for order_id in (await database.fetch("SELECT id FROM orders WHERE status = ?", status))]
@@ -145,8 +165,28 @@ async def create(
     phone_number: str | None = None,
     email: str | None = None,
     comment: str | None = None,
+    username: str | None = None,
 ) -> Order:
-    await database.fetch("INSERT INTO orders (user_id, items, adress, phone_number, email, comment, date_created) VALUES (?, ?, ?, ?, ?, ?)", user_id, items_json, adress, phone_number, email, comment, date_created)
-    return Order((await database.fetch("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0][0])
+    # Format date if provided, otherwise use current time
+    if date_created is None:
+        date_created = datetime.datetime.now()
+    
+    # Format date without microseconds to ensure consistent format
+    date_str = date_created.strftime(constants.TIME_FORMAT)
+    
+    # Put all parameters in a tuple
+    params = (user_id, username, items_json, adress, phone_number, email, comment, date_str)
+    
+    await database.fetch(
+        "INSERT INTO orders (user_id, username, items, adress, phone_number, email, comment, date_created) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        params
+    )
+    
+    # Get the last inserted order ID
+    result = await database.fetch("SELECT id FROM orders ORDER BY id DESC LIMIT 1")
+    if result and len(result) > 0:
+        return Order(result[0][0])
+    else:
+        raise ValueError("Failed to create order")
 
 

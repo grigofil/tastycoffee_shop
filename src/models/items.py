@@ -22,7 +22,9 @@ class Item:
             description TEXT NOT NULL,
             category_id INTEGER NOT NULL,
             price REAL NOT NULL,
+            discount REAL,
             image_id TEXT,
+            weight INTEGER,
             is_hidden INTEGER,
             FOREIGN KEY (category_id) REFERENCES categories (id)
         )"""
@@ -48,12 +50,21 @@ class Item:
     @property
     async def category(self) -> "Category":
         return categories.Category(await self.category_id)
+
+    @property
+    async def category_name(self) -> str:
+        return await categories.Category(await self.category_id).name
+
     async def set_category(self, value: "Category") -> None:
         await self.__update("category_id", value.id)
 
     @property
     async def price(self) -> float:
         return await self.__query("price")
+
+    @property
+    async def weight(self) -> float:
+        return await self.__query("weight")
     async def set_price(self, value: float) -> None:
         await self.__update("price", value)
 
@@ -68,6 +79,22 @@ class Item:
         return bool(await self.__query("is_hidden"))
     async def set_is_hidden(self, value: bool) -> None:
         await self.__update("is_hidden", int(value))
+
+    @property
+    async def discount(self) -> float:
+        result = await self.__query("discount")
+        return float(result) if result is not None else 0
+    
+    async def set_discount(self, value: float) -> None:
+        await self.__update("discount", value)
+    
+    @property
+    async def discounted_price(self) -> float:
+        price = await self.price
+        discount = await self.discount
+        if discount is None or discount == 0:
+            return price
+        return price * (1 - discount / 100)
 
     # only have 1 image
     # @property
@@ -96,13 +123,14 @@ class Item:
     #         await self.__update(json.dumps((await self.list).remove(value)))
     #     
     async def format_text(self, template: str, currency: str) -> str:
-        name, description, price, category_name = await asyncio.gather(
+        name, weight, description, price, category_name = await asyncio.gather(
             self.name,
+            self.weight,
             self.description,
             self.price,
             (await self.category).name
         )
-        return template.replace("%n", name).replace("%d", description).replace("%p", f"{price} {currency}").replace("%c", category_name)
+        return template.replace("%n", name).replace("%w", str(weight)).replace("%d", description).replace("%p", f"{price} {currency}").replace("%c", category_name)
 
     async def delete(self) -> None:
         await database.fetch("DELETE FROM items WHERE id = ?", self.id)

@@ -5,9 +5,24 @@ from config import config
 import os
 import asyncio
 
+# Force config initialization if file doesn't exist
 if not os.path.exists("config.json"):
     config.init()
-    
+    print("Created new config.json file")
+
+# Verify settings section exists, reinitialize if missing
+try:
+    _ = config["settings"]["currency_symbol"]
+except (KeyError, FileNotFoundError):
+    print("Config file corrupted or missing settings, reinitializing...")
+    config.init()
+
+# Add coffee_beans configuration if it doesn't exist
+if "coffee_beans" not in config:
+    config.set("coffee_beans", {
+        "min_order_weight": 25.0  # Minimum order weight in kg
+    })
+
 import localization.ru as language
 # language = importlib.import_module(f"localization.{config['settings']['language']}")
 

@@ -14,8 +14,12 @@ async def execute(callback_query: types.CallbackQuery, user: models.users.User, 
         for child in children
     ]
     for item in items:
-        name, price = await asyncio.gather(item.name, item.price)
-        markup.append((f'{price}₽ {name}', f'{{"r":"user","iid":{item.id}}}item'))
+        name_i, price, discount_price, weight = await asyncio.gather(item.name, item.price, item.discounted_price, item.weight)
+        display_price = discount_price
+        price_text = f'{display_price}₽'
+        if display_price != price:
+            price_text = f'{display_price}₽'
+        markup.append((f'{price_text} за {weight}г {name_i}', f'{{"r":"user","iid":{item.id}}}item'))
     if parent_id:
         markup.append((constants.language.back, f'{{"r":"user","cid":{parent_id}}}category'))
     else:

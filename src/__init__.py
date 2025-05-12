@@ -15,18 +15,24 @@ import models.users as users
 import models.items as items
 import models.categories as categories
 import models.orders as orders
+import models.pending_orders as pending_orders
 import utils
 import database
 import schedules
 
 # First startup
 if not os.path.exists("database.db"):
-    tasks = [
-        database.fetch(object.database_table)
-        for object in [users.User(0), items.Item(0), categories.Category(0), orders.Order(0)]
-    ]
-    asyncio.get_event_loop().run_until_complete(asyncio.gather(*tasks))
-
+    try:
+        print("Initializing database...")
+        tasks = [
+            database.fetch(object.database_table)
+            for object in [users.User(0), items.Item(0), categories.Category(0), orders.Order(0), pending_orders.PendingOrdersPool()]
+        ]
+        asyncio.get_event_loop().run_until_complete(asyncio.gather(*tasks))
+        print("Database initialized successfully")
+    except Exception as e:
+        print(f"Error initializing database: {str(e)}")
+        raise
 
 dotenv.load_dotenv(dotenv.find_dotenv())
 TOKEN = os.getenv("TOKEN")
