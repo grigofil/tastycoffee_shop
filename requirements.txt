@@ -1,0 +1,29 @@
+# Core dependencies
+aiogram==2.23.1
+aiohttp==3.8.3
+aiosqlite==0.17.0
+asyncio==3.4.3
+python-dotenv==0.21.0
+aioschedule==0.5.2
+setuptools==65.6.3
+
+# Data visualization
+matplotlib==3.6.2
+
+# Captcha support
+captcha==0.4
+
+# Additional dependencies that might be needed
+# (These are typically included with Python but listed for completeness)
+# json - built-in
+# os - built-in
+# datetime - built-in
+# sqlite3 - built-in
+# importlib - built-in
+# pathlib - built-in
+# urllib - built-in
+# ssl - built-in
+# re - built-in
+# time - built-in
+# shutil - built-in
+# traceback - built-in

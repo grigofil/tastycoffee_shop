@@ -15,3 +15,6 @@ Dockerfile
 .dockerignore
 payment-methods.json
 src/logger.py
+/ven10/
+/venv/
+*.ipynb
